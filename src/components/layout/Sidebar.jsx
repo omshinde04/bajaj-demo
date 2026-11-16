@@ -10,7 +10,8 @@ import {
   Building2,
   Clock,
   ShieldCheck,
-  ChevronDown
+  ChevronDown,
+  FileDown
 } from 'lucide-react';
 import { getCurrentUser, setCurrentUser, getUsers, resetDemoData, getDefects, getChecksheets, getSheetProgress } from '../../services/storageService';
 
@@ -155,6 +156,26 @@ export const Sidebar = ({ currentView, setCurrentView, onDataChange }) => {
             );
           })}
         </nav>
+
+        {/* Executive Guide PDF Button */}
+        <div className="px-3 pt-1">
+          <a
+            href="/Bajaj_Digital_Checksheets_Executive_Guide.pdf"
+            download="Bajaj_Digital_Checksheets_Executive_Guide.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 transition-all shadow-2xs"
+            title="Download full executive guide for Bajaj management"
+          >
+            <div className="flex items-center gap-2">
+              <FileDown className="w-3.5 h-3.5" />
+              <span>Executive Guide PDF</span>
+            </div>
+            <span className="text-[10px] bg-amber-400 text-slate-900 px-1.5 py-0.2 rounded font-black">
+              PDF
+            </span>
+          </a>
+        </div>
       </div>
 
       {/* Bottom User Profile & Switcher */}
