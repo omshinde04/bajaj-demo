@@ -4,9 +4,7 @@ import {
   CheckCircle2, 
   Wrench, 
   Clock, 
-  Search, 
-  Filter,
-  ShieldAlert
+  Filter
 } from 'lucide-react';
 import { getDefects } from '../../services/storageService';
 
@@ -21,35 +19,28 @@ export const DefectLogView = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-16">
+    <div className="h-full flex flex-col bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden select-none">
       
-      {/* Top Banner */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between shrink-0">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-rose-800 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 uppercase tracking-wider">
-              TPM Corrective Actions
-            </span>
-            <span className="text-xs text-slate-500 font-mono">X → Action → •</span>
-          </div>
-          <h2 className="text-xl font-bold text-slate-900 mt-1">
-            Plant Defect & Non-Conformance Log
-          </h2>
-          <p className="text-xs text-slate-600">
-            Every checkpoint marked <strong>X (Not OK)</strong> automatically converts into a maintenance ticket to prevent defects from being lost.
+          <h3 className="text-sm font-bold text-slate-900 leading-tight">
+            Plant Defect & Non-Conformance Log ({defects.length})
+          </h3>
+          <p className="text-[11px] text-slate-500">
+            Automated ticket queue generated when operators mark checkpoints as "X Not OK".
           </p>
         </div>
 
-        {/* Filter buttons */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg self-start sm:self-center">
+        <div className="flex items-center gap-1 bg-white border border-slate-200 p-0.5 rounded-lg text-xs font-bold">
           {['ALL', 'OPEN', 'RESOLVED'].map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1 rounded text-xs font-bold transition-all ${
+              className={`px-3 py-1 rounded text-xs transition-all ${
                 filter === f
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-blue-700 text-white shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
               {f} ({f === 'ALL' ? defects.length : defects.filter(d => d.status === f).length})
@@ -58,48 +49,57 @@ export const DefectLogView = () => {
         </div>
       </div>
 
-      {defects.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-xs text-slate-500">
-          Zero open defects currently logged. When an operator marks <strong>X (Not OK)</strong> on any checksheet, it will appear here.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDefects.map(def => (
-            <div
-              key={def.id}
-              className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-3 flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="font-mono font-bold text-xs text-slate-700">{def.id}</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    def.severity === 'CRITICAL'
-                      ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                      : 'bg-amber-100 text-amber-800 border border-amber-200'
-                  }`}>
-                    {def.severity}
-                  </span>
-                </div>
-
-                <h4 className="text-sm font-bold text-slate-900 mt-2">{def.sheetTitle}</h4>
-                <div className="text-xs font-semibold text-rose-700 mt-0.5">
-                  Checkpoint: {def.checkpointTitle}
-                </div>
-
-                <div className="p-3 bg-rose-50/60 border border-rose-200/80 rounded-lg text-xs text-rose-900 mt-3">
-                  <strong>Defect Observation:</strong>
-                  <p className="mt-0.5">{def.description}</p>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
-                <span>Logged by {def.loggedBy}</span>
-                <span className="font-semibold text-amber-700">Status: {def.status}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Defects Table */}
+      <div className="flex-1 overflow-y-auto">
+        {defects.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-xs text-slate-400">
+            Zero active defects. Marking any checkpoint as "X Not OK" creates a maintenance ticket here.
+          </div>
+        ) : (
+          <table className="w-full border-collapse text-left text-xs">
+            <thead className="bg-slate-100/90 text-slate-600 text-[11px] font-bold uppercase tracking-wider sticky top-0 z-10 border-b border-slate-200 shadow-2xs">
+              <tr>
+                <th className="py-2.5 px-3 w-28 font-mono">Defect ID</th>
+                <th className="py-2.5 px-3">Equipment Checksheet</th>
+                <th className="py-2.5 px-3">Failed Checkpoint</th>
+                <th className="py-2.5 px-3 w-28 text-center">Severity</th>
+                <th className="py-2.5 px-3">Defect Observation</th>
+                <th className="py-2.5 px-3 w-32">Reported By</th>
+                <th className="py-2.5 px-3 w-28 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredDefects.map(def => (
+                <tr key={def.id} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="py-3 px-3 font-mono font-bold text-slate-700">{def.id}</td>
+                  <td className="py-3 px-3 font-bold text-slate-900">{def.sheetTitle}</td>
+                  <td className="py-3 px-3 text-slate-700 font-medium">{def.checkpointTitle}</td>
+                  <td className="py-3 px-3 text-center">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      def.severity === 'CRITICAL'
+                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                        : 'bg-amber-100 text-amber-800 border border-amber-200'
+                    }`}>
+                      {def.severity}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3 text-slate-600 max-w-xs">
+                    {def.description}
+                  </td>
+                  <td className="py-3 px-3 text-slate-500 font-mono text-[11px]">
+                    {def.loggedBy}
+                  </td>
+                  <td className="py-3 px-3 text-center">
+                    <span className="font-bold text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      {def.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
     </div>
   );

@@ -65,3 +65,4 @@ Visit `http://localhost:5173` in your browser.
 4. **Garbage Store Sanitation Station** — HACCP Shift-Wise (M/A/E/N) waste clearance
 5. **Single Burner Range (LPG) - Unit 2** (Additional equipment for multi-sheet batch demo)
 6. **Commercial Deep Freezer (-18°C)** (Additional equipment for multi-sheet batch demo)
+

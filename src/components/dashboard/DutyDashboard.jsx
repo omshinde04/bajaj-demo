@@ -11,14 +11,14 @@ import {
   Trash2,
   ChevronRight,
   Sparkles,
-  FileText
+  Zap
 } from 'lucide-react';
 import { 
   getChecksheets, 
   getCurrentUser, 
   getSheetProgress, 
-  getDraft, 
-  getDefects 
+  getDefects,
+  saveDraft
 } from '../../services/storageService';
 
 export const DutyDashboard = ({ onOpenSheet, onOpenBatchSubmit }) => {
@@ -29,10 +29,9 @@ export const DutyDashboard = ({ onOpenSheet, onOpenBatchSubmit }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const currentShift = currentUser.shift || 'M';
 
-  // State for selected sheets in batch
-  const [selectedSheetIds, setSelectedSheetIds] = useState([]);
+  // Selected sheets for batch dispatch
+  const [selectedSheetIds, setSelectedSheetIds] = useState(allSheets.slice(0, 5).map(s => s.id));
 
-  // Calculate progress for each sheet
   const sheetStats = allSheets.map(sheet => {
     const progress = getSheetProgress(sheet.id, todayStr, currentShift);
     return {
@@ -51,235 +50,239 @@ export const DutyDashboard = ({ onOpenSheet, onOpenBatchSubmit }) => {
     );
   };
 
-  const handleSelectAllReady = () => {
-    const readyIds = sheetStats.filter(s => s.progress.status === 'READY_TO_SUBMIT' || s.progress.completed > 0).map(s => s.sheet.id);
-    setSelectedSheetIds(readyIds);
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedSheetIds(allSheets.map(s => s.id));
+    } else {
+      setSelectedSheetIds([]);
+    }
   };
 
-  // Icon mapping
+  // 1-Click quick fill 5 sheets for instant presentation
+  const handleQuickDemoFill = () => {
+    selectedSheetIds.forEach(sheetId => {
+      const sheet = allSheets.find(s => s.id === sheetId);
+      if (!sheet) return;
+      const entries = {};
+      sheet.checkpoints.forEach((cp, idx) => {
+        if (cp.type === 'NUMERIC') {
+          entries[cp.id] = { status: 'OK', value: cp.minLimit ? (cp.minLimit + 1.2).toFixed(1) : "3.2" };
+        } else {
+          if (sheet.code === 'EQ-LPG-01' && idx === 5) {
+            entries[cp.id] = { status: 'NOT_OK', defectDesc: 'Gas hose clamp showing surface aging / slight play' };
+          } else {
+            entries[cp.id] = { status: 'OK' };
+          }
+        }
+      });
+      saveDraft(sheetId, todayStr, currentShift, entries, {
+        operatorName: currentUser.name,
+        operatorEmpId: currentUser.empId,
+        remarks: 'Verified per shift schedule'
+      });
+    });
+    window.location.reload();
+  };
+
   const getSheetIcon = (category, title) => {
     if (title.toLowerCase().includes('burner') || title.toLowerCase().includes('lpg')) {
-      return <Flame className="w-5 h-5 text-amber-500" />;
+      return <Flame className="w-4 h-4 text-amber-500" />;
     }
     if (title.toLowerCase().includes('bain marie')) {
-      return <UtensilsCrossed className="w-5 h-5 text-indigo-500" />;
+      return <UtensilsCrossed className="w-4 h-4 text-indigo-500" />;
     }
     if (title.toLowerCase().includes('chiller') || title.toLowerCase().includes('freezer')) {
-      return <Snowflake className="w-5 h-5 text-sky-500" />;
+      return <Snowflake className="w-4 h-4 text-sky-500" />;
     }
-    return <Trash2 className="w-5 h-5 text-slate-500" />;
+    return <Trash2 className="w-4 h-4 text-slate-500" />;
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-16">
+    <div className="h-full flex flex-col bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden select-none">
       
-      {/* Welcome & Shift Overview Banner */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-bajaj-700 bg-bajaj-50 px-2.5 py-1 rounded-full border border-bajaj-200 uppercase tracking-wider">
-              Plant Duty Roster
-            </span>
-            <span className="text-xs text-slate-500 font-mono">Shift {currentShift} Active</span>
+      {/* 1. Top Compact KPIs Bar (Single Thin Row) */}
+      <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-6 text-xs">
+          <div>
+            <span className="text-slate-400 font-medium">Assigned Today:</span>
+            <strong className="ml-1.5 font-mono text-slate-900 text-sm">{totalCount}</strong>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mt-2">
-            Hello, {currentUser.name}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl">
-            You are assigned to <strong className="text-slate-800">Bajaj Chakan Plant 2</strong>. Fill out your assigned TPM equipment PM and facility hygiene checksheets below. Work is <strong className="text-emerald-700">automatically saved as draft</strong> continuously.
-          </p>
+          <div className="h-4 w-px bg-slate-300"></div>
+          <div>
+            <span className="text-emerald-700 font-medium">Ready to Submit:</span>
+            <strong className="ml-1.5 font-mono text-emerald-700 text-sm">{readyCount}</strong>
+          </div>
+          <div className="h-4 w-px bg-slate-300"></div>
+          <div>
+            <span className="text-amber-700 font-medium">Saved Drafts:</span>
+            <strong className="ml-1.5 font-mono text-amber-700 text-sm">{inProgressCount}</strong>
+          </div>
+          <div className="h-4 w-px bg-slate-300"></div>
+          <div>
+            <span className="text-rose-700 font-medium">Open Defects:</span>
+            <strong className="ml-1.5 font-mono text-rose-700 text-sm">{defects.length}</strong>
+          </div>
         </div>
 
-        {/* Quick Batch CTA Card */}
-        <div className="bg-gradient-to-br from-[#002547] to-[#0B4F8A] text-white p-4 rounded-xl shrink-0 shadow-sm border border-bajaj-800 min-w-[280px]">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-bajaj-200 uppercase tracking-wider font-semibold">Selective Dispatch</span>
-            <span className="bg-emerald-400 text-slate-900 font-bold px-2 py-0.5 rounded text-[11px]">
-              Ready
-            </span>
-          </div>
-          <div className="text-2xl font-bold mt-1">
-            {selectedSheetIds.length > 0 ? `${selectedSheetIds.length} Selected` : `${readyCount} Ready to Send`}
-          </div>
-          <p className="text-[11px] text-bajaj-200 mt-1">
-            Send completed sheets (e.g. 5 sheets) directly to Supervisor on WhatsApp & Email.
-          </p>
-          <button
-            onClick={() => onOpenBatchSubmit(selectedSheetIds.length > 0 ? selectedSheetIds : sheetStats.slice(0, 5).map(s => s.sheet.id))}
-            className="w-full mt-3 bg-white text-[#002547] hover:bg-bajaj-50 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-          >
-            <Send className="w-3.5 h-3.5 text-blue-700" />
-            <span>Open Batch Dispatch Screen</span>
-          </button>
-        </div>
+        {/* Quick Demo Helper Button */}
+        <button
+          type="button"
+          onClick={handleQuickDemoFill}
+          className="flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-100 transition-colors"
+          title="Instant mock data for demo"
+        >
+          <Zap className="w-3.5 h-3.5 text-blue-600" />
+          <span>⚡ Auto-Verify 5 Sheets for Demo</span>
+        </button>
       </div>
 
-      {/* KPI Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Checksheets</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{totalCount}</div>
-          <div className="text-[11px] text-slate-500 mt-1">Assigned for today</div>
-        </div>
+      {/* 2. Desktop Checksheets Data Table */}
+      <div className="flex-1 overflow-y-auto">
+        <table className="w-full border-collapse text-left text-xs">
+          <thead className="bg-slate-100/90 text-slate-600 text-[11px] font-bold uppercase tracking-wider sticky top-0 z-10 border-b border-slate-200 shadow-2xs">
+            <tr>
+              <th className="py-2.5 px-3 w-10 text-center">
+                <input
+                  type="checkbox"
+                  checked={selectedSheetIds.length === totalCount && totalCount > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                />
+              </th>
+              <th className="py-2.5 px-3 w-28 font-mono">Code / Doc</th>
+              <th className="py-2.5 px-3">Equipment / Checksheet Name</th>
+              <th className="py-2.5 px-3 w-40">Category</th>
+              <th className="py-2.5 px-3 w-44">Shift Progress</th>
+              <th className="py-2.5 px-3 w-32 text-center">Status</th>
+              <th className="py-2.5 px-3 w-28 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {sheetStats.map(({ sheet, progress }) => {
+              const isSelected = selectedSheetIds.includes(sheet.id);
+              const isReady = progress.status === 'READY_TO_SUBMIT';
+              const isInProgress = progress.status === 'IN_PROGRESS';
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Ready to Submit</div>
-          <div className="text-2xl font-bold text-emerald-700 mt-1">{readyCount}</div>
-          <div className="text-[11px] text-emerald-600 mt-1">100% checks completed</div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Draft / In Progress</div>
-          <div className="text-2xl font-bold text-amber-700 mt-1">{inProgressCount}</div>
-          <div className="text-[11px] text-amber-600 mt-1">Safely saved in local storage</div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-xs font-semibold text-rose-600 uppercase tracking-wider">Open Defects (X)</div>
-          <div className="text-2xl font-bold text-rose-700 mt-1">{defects.length}</div>
-          <div className="text-[11px] text-rose-600 mt-1">Requires maintenance action</div>
-        </div>
-      </div>
-
-      {/* Multi-Select Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            id="selectAll"
-            checked={selectedSheetIds.length === totalCount && totalCount > 0}
-            onChange={(e) => {
-              if (e.target.checked) {
-                setSelectedSheetIds(allSheets.map(s => s.id));
-              } else {
-                setSelectedSheetIds([]);
-              }
-            }}
-            className="w-4 h-4 text-bajaj-600 rounded border-slate-300 focus:ring-bajaj-500 cursor-pointer"
-          />
-          <label htmlFor="selectAll" className="text-xs font-semibold text-slate-700 cursor-pointer">
-            Select All for Batch Dispatch ({selectedSheetIds.length} of {totalCount} chosen)
-          </label>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleSelectAllReady}
-            className="text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
-          >
-            Select Completed Only
-          </button>
-          {selectedSheetIds.length > 0 && (
-            <button
-              onClick={() => onOpenBatchSubmit(selectedSheetIds)}
-              className="text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 px-4 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition-colors"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>Send Selected ({selectedSheetIds.length} Sheets)</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Checksheets Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {sheetStats.map(({ sheet, progress }) => {
-          const isSelected = selectedSheetIds.includes(sheet.id);
-          const isReady = progress.status === 'READY_TO_SUBMIT';
-          const isInProgress = progress.status === 'IN_PROGRESS';
-
-          return (
-            <div
-              key={sheet.id}
-              className={`bg-white rounded-xl border transition-all duration-200 p-5 flex flex-col justify-between shadow-xs hover:shadow-md ${
-                isSelected 
-                  ? 'border-blue-500 ring-2 ring-blue-100' 
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              <div>
-                {/* Header row with checkbox & badge */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
+              return (
+                <tr
+                  key={sheet.id}
+                  className={`transition-colors hover:bg-slate-50/90 ${
+                    isSelected ? 'bg-blue-50/25' : ''
+                  }`}
+                >
+                  {/* Checkbox */}
+                  <td className="py-3 px-3 text-center">
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleSelectSheet(sheet.id)}
-                      className="w-4 h-4 text-bajaj-600 rounded border-slate-300 focus:ring-bajaj-500 cursor-pointer mt-0.5"
+                      className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
                     />
-                    <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
-                      {getSheetIcon(sheet.category, sheet.title)}
+                  </td>
+
+                  {/* Code */}
+                  <td className="py-3 px-3">
+                    <div className="font-mono font-bold text-slate-800">{sheet.code}</div>
+                    <div className="font-mono text-[10px] text-slate-400">{sheet.documentNo}</div>
+                  </td>
+
+                  {/* Title & Location */}
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded bg-slate-100 border border-slate-200 shrink-0">
+                        {getSheetIcon(sheet.category, sheet.title)}
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900 leading-tight">{sheet.title}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">{sheet.location}</div>
+                      </div>
                     </div>
-                  </div>
+                  </td>
 
-                  {/* Status Badge */}
-                  {isReady ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
-                      <CheckCircle2 className="w-3 h-3" /> Ready to Submit
+                  {/* Category */}
+                  <td className="py-3 px-3">
+                    <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      {sheet.categoryLabel}
                     </span>
-                  ) : isInProgress ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
-                      <Clock className="w-3 h-3" /> Draft ({progress.completed}/{progress.total})
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-                      Not Started (0/{progress.total})
-                    </span>
-                  )}
-                </div>
+                  </td>
 
-                {/* Title & Info */}
-                <div className="mt-3">
-                  <div className="text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
-                    {sheet.code} • {sheet.documentNo}
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900 mt-0.5 leading-snug">
-                    {sheet.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1 line-clamp-1">
-                    {sheet.location}
-                  </p>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mt-4 pt-3 border-t border-slate-100">
-                  <div className="flex justify-between items-center text-xs mb-1.5">
-                    <span className="text-slate-500 font-medium">Shift Completion</span>
-                    <span className="font-mono font-bold text-slate-800">
-                      {progress.completed} / {progress.total} items
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-300 ${
-                        isReady ? 'bg-emerald-500' : isInProgress ? 'bg-amber-500' : 'bg-slate-300'
-                      }`}
-                      style={{ width: `${progress.percent}%` }}
-                    ></div>
-                  </div>
-
-                  {progress.defectsCount > 0 && (
-                    <div className="mt-2 text-[11px] text-rose-600 font-bold flex items-center gap-1 bg-rose-50 px-2 py-0.5 rounded">
-                      <AlertTriangle className="w-3 h-3 text-rose-500" />
-                      <span>{progress.defectsCount} defect(s) flagged on this sheet</span>
+                  {/* Progress Bar & Count */}
+                  <td className="py-3 px-3">
+                    <div className="flex justify-between items-center text-[11px] mb-1">
+                      <span className="font-mono font-bold text-slate-800">
+                        {progress.completed} / {progress.total}
+                      </span>
+                      <span className="text-slate-400">{progress.percent}%</span>
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-full transition-all ${
+                          isReady ? 'bg-emerald-500' : isInProgress ? 'bg-amber-500' : 'bg-slate-300'
+                        }`}
+                        style={{ width: `${progress.percent}%` }}
+                      ></div>
+                    </div>
+                    {progress.defectsCount > 0 && (
+                      <span className="text-[10px] font-bold text-rose-600 mt-1 inline-block">
+                        ⚠️ {progress.defectsCount} Defect flagged
+                      </span>
+                    )}
+                  </td>
 
-              {/* Action Buttons */}
-              <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => onOpenSheet(sheet.id)}
-                  className="flex-1 py-2 px-3 text-xs font-bold text-bajaj-800 bg-bajaj-50 hover:bg-bajaj-100 border border-bajaj-200 rounded-lg transition-colors flex items-center justify-center gap-1"
-                >
-                  <span>{progress.completed > 0 ? 'Resume Draft' : 'Start Check'}</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
+                  {/* Status */}
+                  <td className="py-3 px-3 text-center">
+                    {isReady ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" /> Ready
+                      </span>
+                    ) : isInProgress ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
+                        <Clock className="w-3 h-3" /> Draft
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                        Not Started
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Action */}
+                  <td className="py-3 px-3 text-right">
+                    <button
+                      onClick={() => onOpenSheet(sheet.id)}
+                      className="inline-flex items-center gap-1 py-1 px-3 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors shadow-2xs"
+                    >
+                      <span>{progress.completed > 0 ? 'Resume' : 'Inspect'}</span>
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 3. Fixed Desktop Bottom Action Bar */}
+      <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-slate-800">
+            {selectedSheetIds.length} of {totalCount} sheets selected
+          </span>
+          <span className="text-slate-400">|</span>
+          <span className="text-slate-500">
+            You can selectively dispatch completed sheets (e.g. send 5 sheets) anytime.
+          </span>
+        </div>
+
+        <button
+          disabled={selectedSheetIds.length === 0}
+          onClick={() => onOpenBatchSubmit(selectedSheetIds)}
+          className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold px-5 py-2 rounded-lg shadow-sm transition-all"
+        >
+          <Send className="w-3.5 h-3.5 text-blue-200" />
+          <span>Dispatch Selected ({selectedSheetIds.length} Sheets) to WhatsApp & Email</span>
+        </button>
       </div>
 
     </div>

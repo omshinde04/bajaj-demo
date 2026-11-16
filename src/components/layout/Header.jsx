@@ -166,3 +166,4 @@ export const Header = ({ currentView, setCurrentView, onDataChange }) => {
     </header>
   );
 };
+

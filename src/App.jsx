@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/layout/Header';
-import { Navbar } from './components/layout/Navbar';
+import { Sidebar } from './components/layout/Sidebar';
+import { TopBar } from './components/layout/TopBar';
 import { DutyDashboard } from './components/dashboard/DutyDashboard';
 import { CLITRSheet } from './components/checksheets/CLITRSheet';
 import { HygieneSheet } from './components/checksheets/HygieneSheet';
@@ -34,8 +34,8 @@ export default function App() {
 
   if (!initialized) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white text-sm font-mono">
-        Initializing Bajaj Plant System...
+      <div className="h-screen w-screen bg-[#001D38] flex items-center justify-center text-white text-xs font-mono">
+        Initializing Bajaj Plant Desktop System...
       </div>
     );
   }
@@ -60,7 +60,7 @@ export default function App() {
   const handleBatchSuccess = (submission) => {
     setIsBatchModalOpen(false);
     triggerDataChange();
-    // Redirect to notifications view to show the WhatsApp message immediately
+    // Directly navigate to WhatsApp/Email terminal
     setCurrentView('notifications');
   };
 
@@ -72,17 +72,10 @@ export default function App() {
   const activeSheet = activeSheetId ? getChecksheetById(activeSheetId) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-bajaj-700 selection:text-white">
+    <div className="h-screen w-screen overflow-hidden flex bg-slate-100 font-sans text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
       
-      {/* Top Corporate Header */}
-      <Header 
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        onDataChange={triggerDataChange}
-      />
-
-      {/* Main Navigation Tabs */}
-      <Navbar 
+      {/* 1. Left Fixed Enterprise Desktop Sidebar */}
+      <Sidebar 
         currentView={currentView}
         setCurrentView={(view) => {
           if (view === 'batch_submit') {
@@ -91,74 +84,86 @@ export default function App() {
             setCurrentView(view);
           }
         }}
+        onDataChange={triggerDataChange}
       />
 
-      {/* Main View Port */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* 2. Main Desktop Workstation Canvas */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         
-        {/* View 1: Duty Dashboard */}
-        {currentView === 'duty' && (
-          <DutyDashboard 
-            key={dataVersion}
-            onOpenSheet={handleOpenSheet}
-            onOpenBatchSubmit={handleOpenBatchSubmit}
-          />
-        )}
+        {/* Top Desktop Titlebar */}
+        <TopBar 
+          currentView={currentView}
+          activeSheetTitle={activeSheet?.title}
+          onOpenBatchSubmit={() => handleOpenBatchSubmit()}
+          onOpenNotifications={() => setCurrentView('notifications')}
+        />
 
-        {/* View 2: CLITR Sheet Editor (LPG Burner & Bain Marie) */}
-        {currentView === 'sheet_clitr' && activeSheet && (
-          <CLITRSheet 
-            key={`${activeSheet.id}_${dataVersion}`}
-            sheet={activeSheet}
-            onBack={() => setCurrentView('duty')}
-            onProceedToBatch={(id) => handleOpenBatchSubmit([id])}
-          />
-        )}
+        {/* Viewport Workstation (Fixed height, no outer page scroll!) */}
+        <main className="flex-1 p-3 overflow-hidden min-h-0 bg-slate-100">
+          
+          {/* Duty Dashboard */}
+          {currentView === 'duty' && (
+            <DutyDashboard 
+              key={dataVersion}
+              onOpenSheet={handleOpenSheet}
+              onOpenBatchSubmit={handleOpenBatchSubmit}
+            />
+          )}
 
-        {/* View 3: Facility Hygiene Sheet Editor (Chiller & Garbage Store) */}
-        {currentView === 'sheet_hygiene' && activeSheet && (
-          <HygieneSheet 
-            key={`${activeSheet.id}_${dataVersion}`}
-            sheet={activeSheet}
-            onBack={() => setCurrentView('duty')}
-            onProceedToBatch={(id) => handleOpenBatchSubmit([id])}
-          />
-        )}
+          {/* CLITR Sheet Table (LPG Burner & Bain Marie) */}
+          {currentView === 'sheet_clitr' && activeSheet && (
+            <CLITRSheet 
+              key={`${activeSheet.id}_${dataVersion}`}
+              sheet={activeSheet}
+              onBack={() => setCurrentView('duty')}
+              onProceedToBatch={(id) => handleOpenBatchSubmit([id])}
+            />
+          )}
 
-        {/* View 4: Submissions & Audit Archive */}
-        {currentView === 'submissions' && (
-          <SubmissionsView 
-            key={dataVersion}
-            onOpenGridModal={handleOpenGridModal}
-          />
-        )}
+          {/* Hygiene Sheet Table (Chiller & Garbage Store) */}
+          {currentView === 'sheet_hygiene' && activeSheet && (
+            <HygieneSheet 
+              key={`${activeSheet.id}_${dataVersion}`}
+              sheet={activeSheet}
+              onBack={() => setCurrentView('duty')}
+              onProceedToBatch={(id) => handleOpenBatchSubmit([id])}
+            />
+          )}
 
-        {/* View 5: WhatsApp & Email Logs */}
-        {currentView === 'notifications' && (
-          <NotificationModal 
-            key={dataVersion}
-            onClose={() => setCurrentView('duty')}
-          />
-        )}
+          {/* Submissions & Audit Archive */}
+          {currentView === 'submissions' && (
+            <SubmissionsView 
+              key={dataVersion}
+              onOpenGridModal={handleOpenGridModal}
+            />
+          )}
 
-        {/* View 6: Defect Log */}
-        {currentView === 'defects' && (
-          <DefectLogView 
-            key={dataVersion}
-          />
-        )}
+          {/* WhatsApp & Email 2-Column Terminal */}
+          {currentView === 'notifications' && (
+            <NotificationModal 
+              key={dataVersion}
+            />
+          )}
 
-        {/* View 7: Admin Panel */}
-        {currentView === 'admin' && (
-          <AdminUserManagement 
-            key={dataVersion}
-            onUsersUpdated={triggerDataChange}
-          />
-        )}
+          {/* Defect Log */}
+          {currentView === 'defects' && (
+            <DefectLogView 
+              key={dataVersion}
+            />
+          )}
 
-      </main>
+          {/* Admin Panel */}
+          {currentView === 'admin' && (
+            <AdminUserManagement 
+              key={dataVersion}
+              onUsersUpdated={triggerDataChange}
+            />
+          )}
 
-      {/* Batch Submission Modal (Send 5+ sheets) */}
+        </main>
+      </div>
+
+      {/* Selective Batch Dispatch Modal (Send 5+ Sheets) */}
       {isBatchModalOpen && (
         <BatchSubmitModal 
           initialSelectedIds={batchInitialSelection}
@@ -167,21 +172,13 @@ export default function App() {
         />
       )}
 
-      {/* Official Bajaj Monthly Grid Preview (Exact Replica of Physical Sheet) */}
+      {/* Official Bajaj 31-Day Physical Grid Modal */}
       {isGridModalOpen && selectedGridSheet && (
         <BajajGridPrintView 
           sheetItem={selectedGridSheet}
           onClose={() => setIsGridModalOpen(false)}
         />
       )}
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 no-print">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Bajaj Auto Ltd. • Plant Facility & TPM Inspection System</span>
-          <span className="font-mono text-[11px] text-slate-400">Offline-First Local Storage Engine • Demo Mode</span>
-        </div>
-      </footer>
 
     </div>
   );

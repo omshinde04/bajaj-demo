@@ -369,3 +369,4 @@ const triggerNotifications = (submission) => {
   notifications.unshift(waNotification, emailNotification);
   localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(notifications));
 };
+
