@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
-import { getNotifications } from '../../services/storageService';
+import { getNotifications, getSubmissions } from '../../services/storageService';
+import { downloadSubmissionPdf } from '../../services/pdfService';
 import { 
   getWhatsAppConfig, 
   saveWhatsAppConfig, 
@@ -286,21 +287,47 @@ export const NotificationModal = () => {
                 </p>
 
                 {/* PDF Attachment Box */}
-                <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between max-w-sm">
+                <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between max-w-md">
                   <div className="flex items-center gap-2">
                     <FileText className="w-5 h-5 text-rose-600" />
                     <div>
-                      <div className="font-bold text-slate-900 text-xs">{latestEmail.pdfAttachmentName}</div>
+                      <div className="font-bold text-slate-900 text-xs">{latestEmail.pdfAttachmentName || 'Bajaj_Checksheets_Audit_Report.pdf'}</div>
                       <div className="text-[10px] text-slate-400">Official Monthly Matrix Grid • 142 KB</div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => alert("Simulating PDF download of the physical Bajaj grid layout!")}
-                    className="flex items-center gap-1 text-blue-700 font-bold text-xs bg-white border border-slate-200 px-2 py-1 rounded shadow-2xs hover:bg-slate-50"
-                  >
-                    <Download className="w-3 h-3" />
-                    <span>Download</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        const subs = getSubmissions();
+                        const sub = subs[0] || {
+                          id: 'SUB-202611-01',
+                          date: new Date().toISOString().split('T')[0],
+                          shift: 'M',
+                          operator: { name: 'Rahul Shinde', empId: 'BJ-OP-4412' }
+                        };
+                        downloadSubmissionPdf(sub);
+                      }}
+                      className="flex items-center gap-1 text-white font-bold text-xs bg-rose-600 hover:bg-rose-700 px-3 py-1.5 rounded shadow-2xs transition-colors"
+                      title="Download real PDF file to your computer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download PDF</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const subs = getSubmissions();
+                        const sub = subs[0] || { id: 'SUB-202611-01', date: new Date().toISOString().split('T')[0], shift: 'M' };
+                        downloadSubmissionPdf(sub);
+                        handleSendDirect(waNotifs[0]?.content || "Bajaj Shift Checksheet PDF Attached", userPhone);
+                      }}
+                      className="flex items-center gap-1 text-emerald-800 font-bold text-xs bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-2.5 py-1.5 rounded transition-colors"
+                      title="Download PDF & Open WhatsApp to attach"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Attach to WhatsApp</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

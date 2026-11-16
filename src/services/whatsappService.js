@@ -46,3 +46,4 @@ export const sendViaCallMeBot = async (phone, text, apiKey) => {
     return { success: false, error: err.message };
   }
 };
+

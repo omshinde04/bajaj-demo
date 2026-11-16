@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Printer, Download, Check, ShieldCheck } from 'lucide-react';
 import { getChecksheetById } from '../../services/storageService';
+import { downloadSubmissionPdf } from '../../services/pdfService';
 
 export const BajajGridPrintView = ({ sheetItem, onClose }) => {
   const fullSheet = getChecksheetById(sheetItem?.sheetId) || {};
@@ -34,11 +35,26 @@ export const BajajGridPrintView = ({ sheetItem, onClose }) => {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => {
+                downloadSubmissionPdf({
+                  id: `AUDIT-${sheetItem.code || 'DOC'}`,
+                  date: new Date().toISOString().split('T')[0],
+                  shift: 'M',
+                  sheets: [sheetItem]
+                });
+              }}
+              className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-xs"
+              title="Download real PDF in 1 Click"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>1-Click PDF Download</span>
+            </button>
+            <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-xs"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print / Save PDF</span>
+              <span>Print Grid</span>
             </button>
             <button
               onClick={onClose}

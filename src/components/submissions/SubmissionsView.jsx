@@ -7,9 +7,11 @@ import {
   Clock, 
   User, 
   ShieldCheck,
-  Send
+  Send,
+  Download
 } from 'lucide-react';
 import { getSubmissions, getChecksheets } from '../../services/storageService';
+import { downloadSubmissionPdf } from '../../services/pdfService';
 
 export const SubmissionsView = ({ onOpenGridModal }) => {
   const submissions = getSubmissions();
@@ -86,11 +88,16 @@ export const SubmissionsView = ({ onOpenGridModal }) => {
                   </div>
 
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-semibold flex items-center gap-1">
+                    <button
+                      onClick={() => downloadSubmissionPdf(selectedSub)}
+                      className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg font-bold transition-colors shadow-2xs"
+                      title="Download Official Audit PDF in 1 Click"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download Audit PDF</span>
+                    </button>
+                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded font-semibold flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> WhatsApp Sent
-                    </span>
-                    <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Email Sent
                     </span>
                   </div>
                 </div>

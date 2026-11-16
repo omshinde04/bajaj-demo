@@ -381,8 +381,8 @@ const triggerNotifications = (submission) => {
 
   // 1. WhatsApp Payload to Supervisor
   const waMessage = submission.totalDefects > 0
-    ? `⚠️ *URGENT - BAJAJ CHAKAN 2*\nDefects logged during shift check by *${submission.operator.name}* (${submission.shift} Shift).\n\n📄 *Sheets Submitted:* ${submission.sheetsCount}\n🚨 *Defects Found:* ${submission.totalDefects}\n\n*Summary:*\n${submission.sheets.map(s => `• ${s.title}: ${s.status}`).join('\n')}\n\n👉 *Review & Sign:* https://bajaj-portal.internal/audit/${submission.id}`
-    : `✅ *BAJAJ CHAKAN 2 - Shift Checksheet Submitted*\nOperator: *${submission.operator.name}* (ID: ${submission.operator.empId})\nShift: *${submission.shift}* | Time: *${timeStr}*\n\n📄 *Sheets Completed (${submission.sheetsCount}):*\n${submission.sheets.map(s => `✓ ${s.title} ${s.tempRecorded ? `(Temp: ${s.tempRecorded})` : ''}`).join('\n')}\n\n👉 *One-Click Sign-off:* https://bajaj-portal.internal/audit/${submission.id}`;
+    ? `⚠️ *URGENT - BAJAJ CHAKAN 2*\nDefects logged during shift check by *${submission.operator.name}* (${submission.shift} Shift).\n\n📄 *Sheets Submitted:* ${submission.sheetsCount}\n🚨 *Defects Found:* ${submission.totalDefects}\n\n*Summary:*\n${submission.sheets.map(s => `• ${s.title}: ${s.status}`).join('\n')}\n\n📎 *Official PDF Audit Report:* Attached / Download: https://bajaj-demo.internal/audit/${submission.id}\n\n👉 *Review & Sign:* https://bajaj-portal.internal/audit/${submission.id}`
+    : `✅ *BAJAJ CHAKAN 2 - Shift Checksheet Submitted*\nOperator: *${submission.operator.name}* (ID: ${submission.operator.empId})\nShift: *${submission.shift}* | Time: *${timeStr}*\n\n📄 *Sheets Completed (${submission.sheetsCount}):*\n${submission.sheets.map(s => `✓ ${s.title} ${s.tempRecorded ? `(Temp: ${s.tempRecorded})` : ''}`).join('\n')}\n\n📎 *Official PDF Audit Report:* Attached / Download: https://bajaj-demo.internal/audit/${submission.id}\n\n👉 *One-Click Sign-off:* https://bajaj-portal.internal/audit/${submission.id}`;
 
   const waNotification = {
     id: `NOTIF-WA-${Date.now()}`,
