@@ -316,8 +316,52 @@ export const logDefect = (defect) => {
 
 export const getDefects = () => {
   try {
-    return JSON.parse(localStorage.getItem(KEYS.DEFECTS)) || [];
-  } catch {
+    const explicitlyLogged = JSON.parse(localStorage.getItem(KEYS.DEFECTS)) || [];
+    const drafts = getAllDrafts();
+    const allSheets = getChecksheets();
+    const liveDraftDefects = [];
+
+    // Scan all drafts for any 'NOT_OK' entries so they show up immediately in real-time
+    Object.keys(drafts).forEach(key => {
+      const draft = drafts[key];
+      if (!draft || !draft.entries) return;
+      
+      const sheet = allSheets.find(s => s.id === draft.sheetId);
+      if (!sheet) return;
+
+      sheet.checkpoints.forEach(cp => {
+        const entry = draft.entries[cp.id];
+        if (entry && entry.status === 'NOT_OK') {
+          liveDraftDefects.push({
+            id: `DEF-${draft.sheetId.replace('sheet_', '').toUpperCase()}-${cp.seq}`,
+            sheetId: draft.sheetId,
+            sheetTitle: sheet.title,
+            checkpointId: cp.id,
+            checkpointTitle: cp.title,
+            description: entry.defectDesc || 'Defect flagged during shift inspection (Action required)',
+            severity: cp.critical ? 'CRITICAL' : 'MEDIUM',
+            loggedBy: draft.metadata?.operatorName || 'Shift Technician',
+            date: draft.date,
+            shift: draft.shift,
+            status: 'OPEN',
+            createdAt: draft.metadata?.savedAt || new Date().toISOString()
+          });
+        }
+      });
+    });
+
+    // Merge explicitly logged and live draft defects (deduplicating by sheetId + checkpointTitle)
+    const combined = [...liveDraftDefects];
+    explicitlyLogged.forEach(def => {
+      const exists = combined.some(d => d.sheetId === def.sheetId && d.checkpointTitle === def.checkpointTitle);
+      if (!exists) {
+        combined.push(def);
+      }
+    });
+
+    return combined;
+  } catch (err) {
+    console.error("Error reading defects:", err);
     return [];
   }
 };

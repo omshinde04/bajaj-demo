@@ -76,8 +76,10 @@ export default function App() {
       
       {/* 1. Left Fixed Enterprise Desktop Sidebar */}
       <Sidebar 
+        key={`sidebar_${dataVersion}`}
         currentView={currentView}
         setCurrentView={(view) => {
+          triggerDataChange();
           if (view === 'batch_submit') {
             handleOpenBatchSubmit();
           } else {
@@ -115,7 +117,10 @@ export default function App() {
             <CLITRSheet 
               key={`${activeSheet.id}_${dataVersion}`}
               sheet={activeSheet}
-              onBack={() => setCurrentView('duty')}
+              onBack={() => {
+                triggerDataChange();
+                setCurrentView('duty');
+              }}
               onProceedToBatch={(id) => handleOpenBatchSubmit([id])}
             />
           )}
@@ -125,7 +130,10 @@ export default function App() {
             <HygieneSheet 
               key={`${activeSheet.id}_${dataVersion}`}
               sheet={activeSheet}
-              onBack={() => setCurrentView('duty')}
+              onBack={() => {
+                triggerDataChange();
+                setCurrentView('duty');
+              }}
               onProceedToBatch={(id) => handleOpenBatchSubmit([id])}
             />
           )}

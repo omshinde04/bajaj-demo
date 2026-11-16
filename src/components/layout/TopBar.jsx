@@ -70,3 +70,4 @@ export const TopBar = ({ currentView, activeSheetTitle, onOpenBatchSubmit, onOpe
     </header>
   );
 };
+

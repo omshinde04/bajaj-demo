@@ -208,3 +208,4 @@ export const Sidebar = ({ currentView, setCurrentView, onDataChange }) => {
     </aside>
   );
 };
+
